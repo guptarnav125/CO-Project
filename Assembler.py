@@ -79,18 +79,28 @@ for i in list1:
         output += y + registers[list3[0]] + U_type[list2[0]]
         print(output)
     elif list2[0] in I_type:
-        list3 = list2[1].split(",")
-        if list2[0] == "jalr":
-            imm_offset = list3[1].split("(")
-            imm = int(imm_offset[0])
-            rs1 = imm_offset[1][0]
+        if list2[0]=="lw":
+            list3 = list2[1].split(",")
+            imm_rs1 = list3[1].split("(")
+            imm = int(imm_rs1[0])
+            rs1 = imm_rs1[1][0:2]
+            rd = list3[0]
+            y = binary(imm, 12)
+            output += y + registers[rs1] + I_type[list2[0]][0] + registers[rd] + "0010011"
+            print(output)
         else:
-            imm = int(list3[2])
-            rs1 = list3[1]
-        rd = list3[0]
-        y = binary(imm, 12)
-        output += y + registers[rs1] + I_type[list2[0]][0] + registers[rd] + I_type[list2[0]][1]
-        print(output)
+            list3 = list2[1].split(",")
+            if list2[0] == "jalr":
+                imm_offset = list3[1].split("(")
+                imm = int(imm_offset[0])
+                rs1 = imm_offset[1][0]
+            else:
+                imm = int(list3[2])
+                rs1 = list3[1]
+            rd = list3[0]
+            y = binary(imm, 12)
+            output += y + registers[rs1] + I_type[list2[0]][0] + registers[rd] + I_type[list2[0]][1]
+            print(output)
     elif list2[0] in S_type:
         list3 = list2[1].split(",")
         imm_rs1 = list3[1].split("(")
