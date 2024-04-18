@@ -1,3 +1,5 @@
+import sys
+
 instruction_type={
     'add':'R',
     'sub':'R',
@@ -132,7 +134,7 @@ memory={
     0x0001007c:0b00000000000000000000000000000000
 }
 
-f=open("input.txt","r")
+f=open(sys.argv[1],"r")
 a=f.readlines()
 for i in a:
     i=i.strip()
@@ -254,21 +256,21 @@ def execute(inst,counter):
         imm=inst[0]+inst[12:20]+inst[11]+inst[1:11]
         execute_J_type(imm,inst[20:25],counter)
     
-f=open("output.txt","w")
+f=open(sys.argv[2],"w")
 
 y=0
 while y<x:
-    f.write(format(y,'032b'))
+    f.write('0b'+format(y,'032b'))
     f.write(" ")
     execute(PC[y],y)
     for i in registers:
-        f.write(format(registers[i],'032b'))
+        f.write('0b'+format(registers[i],'032b'))
         f.write(" ")
     y+=4
     f.write("\n")
 
 for address, value in memory.items():
-    decimal_value = int(str(value), 2)  # Convert binary value to decimal
-    f.write(f"0x{address:08x}:0b{decimal_value:032b}\n")  # Write decimal value to output file
+      # Convert binary value to decimal
+    f.write(f"0x{address:08x}:0b{value:032b}\n")  # Write decimal value to output file
 
 f.close()
