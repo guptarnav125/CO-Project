@@ -1,31 +1,5 @@
 import sys
 
-instruction_type={
-    'add':'R',
-    'sub':'R',
-    'sll':'R',
-    'slt':'R',
-    'sltu':'R',
-    'xor':'R',
-    'srl':'R',
-    'or':'R',
-    'and':'R',
-    'addi':'I',
-    'lw':'I',
-    'sltiu':'I',
-    'jalr':'I',
-    'sw':'S',
-    'beq':'B',
-    'bne':'B',
-    'blt':'B',
-    'bge':'B',
-    'bltu':'B',
-    'bgeu':'B',
-    'lui':'U',
-    'auipc':'U',
-    'jal':'J'
-}
-
 registers={
 '00000': 0 ,
 '00001': 0 ,
@@ -61,33 +35,7 @@ registers={
 '11111': 0 
 }
 
-OPCODES={
-    'add':'0110011',
-    'sub':'0110011',
-    'sll':'0110011',
-    'slt':'0110011',
-    'sltu':'0110011',
-    'xor':'0110011',
-    'srl':'0110011',
-    'or':'0110011',
-    'and':'0110011',
-    'addi':'0010011',
-    'lw':'0000011',
-    'sltiu':'0010011',
-    'jalr':'1100111',
-    'sw':'0100011',
-    'beq':'1100011',
-    'bne':'1100011',
-    'blt':'1100011',
-    'bge':'1100011',
-    'bltu':'1100011',
-    'bgeu':'1100011',
-    'lui':'0110111',
-    'auipc':'0010111',
-    'jal':'1101111'
-}
-
-OPCODE_to_instruction_type={
+opcodes={
     '0110011':'R',
     '0000011':'I',
     '0010011':'I',
@@ -140,6 +88,7 @@ for i in a:
     i=i.strip()
 f.close()
 
+#make a dictionary for program counter storing the statements as its values
 PC={}
 x=0
 for i in a:
@@ -152,7 +101,7 @@ def sext(value, bits):
     else:
         return value
     
-def execute_R_type(funct7,rs2,rs1,funct3,rd):
+def R_type(funct7,rs2,rs1,funct3,rd):
     if funct7=="0000000" and funct3=="000": #add
         registers[rd]=registers[rs1]+registers[rs2]
     elif funct7=="0100000" and funct3=="000": #subtract
@@ -176,7 +125,7 @@ def execute_R_type(funct7,rs2,rs1,funct3,rd):
     elif funct3=="111":#and
         registers[rd]=registers[rs1]&registers[rs2]
 
-def execute_I_type(imm,rs1,funct3,rd,opcode,counter):
+def I_type(imm,rs1,funct3,rd,opcode,counter):
     if funct3=="010": #lw
         xyz=registers[rs1]+sext(int(imm,2),32)
         registers[rd]=memory[hex(xyz)]
@@ -191,13 +140,13 @@ def execute_I_type(imm,rs1,funct3,rd,opcode,counter):
         global y
         y=counter
 
-def execute_S_type(imms1,rs2,rs1,funct3,imms2,opcode):
-    if opcode == "0100011":
+def S_type(imms1,rs2,rs1,funct3,imms2,opcode):
+    if opcode == "0100011": #sw
         immtotal = imms1 + imms2
         storeval = registers[rs1] + sext(int(immtotal,2),32)
         memory[hex(storeval)] =registers[rs2]
 
-def execute_B_type(imm,rs2,rs1,funct3,counter):
+def B_type(imm,rs2,rs1,funct3,counter):
     global y
     if funct3=="000": #beq
         if sext(registers[rs1],32)==sext(registers[rs2],32):
@@ -218,59 +167,56 @@ def execute_B_type(imm,rs2,rs1,funct3,counter):
         if registers[rs1]>=registers[rs2]:
             y=counter+sext(int(imm,2),32)
     
-                   
-
-def execute_U_type(imm,rd,opcode,counter):
+def U_type(imm,rd,opcode,counter):
     if opcode=="0110111": #lui
         registers[rd]=counter+sext(int(imm,2),32)
     elif opcode=="0010111": #auipc
         registers[rd]=sext(int(imm,2),32)
 
-def execute_J_type(imm,rd,counter):
+def J_type(imm,rd,counter): #jal
     registers[rd]=counter+4
     counter=(counter+sext(int(imm,2),32))& ~1
     global y
     y=counter
 
 
-def inst_type(opcode):
-    for i in OPCODE_to_instruction_type:
+def inst_type(opcode): #function to determine type of statement
+    for i in opcodes:
         if i==opcode:
-            return OPCODE_to_instruction_type[i]
+            return opcodes[i]
         
 
-def execute(inst,counter):
-    type=inst_type(inst[25:32])
+def execute(inst,counter): #execute binary statement
+    type=inst_type(inst[25:32]) #determine type
     if type=="R":
-        execute_R_type(inst[0:7],inst[7:12],inst[12:17],inst[17:20],inst[20:25])
+        R_type(inst[0:7],inst[7:12],inst[12:17],inst[17:20],inst[20:25])
     elif type=="I":
-        execute_I_type(inst[0:12],inst[12:17],inst[17:20],inst[20:25],inst[25:32],counter)
+        I_type(inst[0:12],inst[12:17],inst[17:20],inst[20:25],inst[25:32],counter)
     elif type=="S":
-        execute_S_type(inst[0:7],inst[7:12],inst[12:17],inst[17:20],inst[20:25],inst[25:32])
+        S_type(inst[0:7],inst[7:12],inst[12:17],inst[17:20],inst[20:25],inst[25:32])
     elif type=="B":
         imm=inst[0]+inst[24]+inst[1:7]+inst[20:24]
-        execute_B_type(imm,inst[7:12],inst[12:17],inst[17:20],counter)
+        B_type(imm,inst[7:12],inst[12:17],inst[17:20],counter)
     elif type=="U":
-        execute_U_type(inst[0:20],inst[20:25],inst[25:32],counter)
+        U_type(inst[0:20],inst[20:25],inst[25:32],counter)
     elif type=="J":
         imm=inst[0]+inst[12:20]+inst[11]+inst[1:11]
-        execute_J_type(imm,inst[20:25],counter)
+        J_type(imm,inst[20:25],counter)
     
 f=open(sys.argv[2],"w")
 
 y=0
 while y<x:
-    f.write('0b'+format(y,'032b'))
+    f.write('0b'+format(y,'032b')) #Write program counter
     f.write(" ")
     execute(PC[y],y)
-    for i in registers:
-        f.write('0b'+format(registers[i],'032b'))
+    for i in registers: #Write values of registers
+        f.write('0b'+format(registers[i],'032b')) 
         f.write(" ")
     y+=4
     f.write("\n")
 
 for address, value in memory.items():
-      # Convert binary value to decimal
-    f.write(f"0x{address:08x}:0b{value:032b}\n")  # Write decimal value to output file
+    f.write(f"0x{address:08x}:0b{value:032b}\n")  # Write memory address and value to output file
 
 f.close()
